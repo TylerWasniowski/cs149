@@ -19,18 +19,19 @@ int main(int argc, char* args) {
 	long long N = 3423;
 
 	long long xi = 2;
-	long long xm = 2;
-	for (long long i = 1; N > 1; i++) {
-		xi = (xi * xi + 1) % N;
+	long long x2i = 2;
+	while (N > 1) {
+		long long xiPrime = xi * xi + 1;
+		long long x2iPrime = (x2i * x2i + 1);
+		x2iPrime = x2iPrime * x2iPrime + 1;
+		xi = xiPrime % N;
+		x2i = x2iPrime % N;
+		long long s = gcd_long(xi - x2i, N);
 		printf("xi: %lld\n", xi);
-		long long s = gcd_long(xi - xm, N);
 		if (s > 1 && s < N) {
 			printf("%lld", s);
 			N /= s;
 		}
-		// if xi is a power of 2
-		if ((i & (i - 1)) == 0)
-			xm = xi;
 	}
 
 	printf("done\n");
