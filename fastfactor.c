@@ -28,7 +28,7 @@ void writeFactors(long long N, long long first, long long last, int pipeWriteEnd
  * Terminates children afterwards
  **/
 void computeFactors(int numChildren, long long N, int pipeWriteEnd) {
-	long long Nsqrt = (long long)sqrt(N);
+	long long Nsqrt = (long long) sqrt(N) + 1;
 	long long Npart = Nsqrt / numChildren;
 
 	long long start = 2;
@@ -57,7 +57,7 @@ int main(int argc, char* args)
 
 	long long N = 9222343223213138933;
 
-	computeFactors(4, N, pipeArr[1]);
+	computeFactors(8, N, pipeArr[1]);
 	// Was told to close the end that I'm not using by https://www.tldp.org/LDP/lpg/node11.html
 	close(pipeArr[1]);
 
