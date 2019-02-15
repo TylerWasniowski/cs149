@@ -91,7 +91,7 @@ int main(int argc, char** argv)
         for (int i = 0; scanResCode != EOF; i++) {
             scanf("%lld\n", &N);
 
-			if (scanResCode -= 0) {
+			if (scanResCode == 0) {
 				printf("Couldn't convert number in main(). Exiting...\n");
 				exit(-1);
 			}
