@@ -22,7 +22,7 @@ int main(int argc, char** argv)
     close(STDOUT_FILENO);
     close(STDERR_FILENO);
 
-    for (int i = 2; i < 3; i++) {
+    for (int i = 2; i < argc; i++) {
         int nameLength = log(fileNumber) / log(10) + 1;
         char filename[nameLength + 4];
 
@@ -37,6 +37,7 @@ int main(int argc, char** argv)
         switch (fork()) {
             case 0:
                 printf("Executing %s %s\n", command, argv[i]);
+                fflush(stdout);
                 execlp(command, command, argv[i], NULL);
                 exit(0);
                 break;
@@ -49,6 +50,7 @@ int main(int argc, char** argv)
         int exitCode;
         wait(&exitCode);
         printf("Finished executing %s %s exit code = %d\n", command, argv[i], exitCode);
+        fflush(stdout);
         close(outFd);
         close(errFd);
     }
