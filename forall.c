@@ -1,11 +1,17 @@
 #include <fcntl.h>
-#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/wait.h>
 #include <unistd.h>
 
+#include <string.h>
+
+#include <math.h>
+
 #include <sys/types.h>
+#include <sys/wait.h>
+
+
+char* fileExtension = ".out";
 
 
 int main(int argc, char** argv)
@@ -23,10 +29,10 @@ int main(int argc, char** argv)
     close(STDERR_FILENO);
 
     for (int i = 2; i < argc; i++) {
-        int nameLength = log(fileNumber) / log(10) + 1;
-        char filename[nameLength + 4];
+        int filenameLength = (log(fileNumber) / log(10) + 1) + strlen(fileExtension);
+        char filename[filenameLength];
 
-        // Learned to do this from here: https://stackoverflow.com/a/5172154
+        // Learned to use sprintf from here: https://stackoverflow.com/a/5172154
         sprintf(filename, "%d.out", fileNumber);
 
         int outFd = open(filename, O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR);
@@ -43,6 +49,7 @@ int main(int argc, char** argv)
                 break;
             case -1:
                 printf("Error executing input \"%s\". Exiting...\n", argv[i]);
+                fflush(stdout);
                 exit(-1);
                 break;
         }
