@@ -112,8 +112,8 @@ int main(int argc, char** argv) {
         printf("Executing %s %s\n", command, arg);
         fflush(stdout);
 
-        currentChild = fork();
         lastChildTerm = 0;
+        currentChild = fork();
         if (currentChild == 0) {
             execlp(command, command, arg, NULL);
 
