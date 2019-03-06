@@ -19,9 +19,11 @@ char* fileExtension = ".out";
 int stdoutCopy;
 int stderrCopy;
 
+pid_t currentChild;
+int lastChildTerm;
+
 char* command;
 char* arg;
-pid_t currentChild;
 
 void error(int exitCode, char* errorText) {
     perror(errorText);
@@ -33,6 +35,7 @@ void endProcess(pid_t processId) {
     printf("Signalling %d\n", processId);
     fflush(stdout);
     kill(processId, SIGINT);
+    lastChildTerm = 1;
 }
 
 void setSignalHandler(int sig, void* fun) {
@@ -68,7 +71,7 @@ void signalQuitHandler(int sig, siginfo_t* sigInfo, void* context) {
     printf("Exiting due to quit signal\n");
     fflush(stdout);
 
-    exit(EXIT_FAILURE);
+    exit(2);
 }
 
 int main(int argc, char** argv) {
@@ -81,6 +84,7 @@ int main(int argc, char** argv) {
     stderrCopy = dup(STDERR_FILENO);
 
     currentChild = -1;
+    lastChildTerm = 0;
 
     setSignalHandler(SIGINT, signalInterruptHandler);
     setSignalHandler(SIGQUIT, signalQuitHandler);
@@ -109,6 +113,7 @@ int main(int argc, char** argv) {
         fflush(stdout);
 
         currentChild = fork();
+        lastChildTerm = 0;
         if (currentChild == 0) {
             execlp(command, command, arg, NULL);
 
@@ -126,12 +131,11 @@ int main(int argc, char** argv) {
         }
 
         int exitCode = 0;
-        pid_t pid;
         do {
-            pid = wait(&exitCode);
+            wait(&exitCode);
         } while (errno == EINTR);
         
-        if (pid >= 0) {
+        if (!lastChildTerm) {
             printf("Finished executing %s %s exit code = %d\n", command, arg, exitCode);
             fflush(stdout);
         }
