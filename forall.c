@@ -15,13 +15,32 @@
 
 char* fileExtension = ".out";
 
+
 int stdoutCopy;
 int stderrCopy;
 
-void error(int exitCode, char errorText[]) {
+char* command;
+char* arg;
+pid_t currentChild;
+
+void error(int exitCode, char* errorText) {
     perror(errorText);
     fflush(stderr);
     exit(exitCode);
+}
+
+void endProcess(pid_t processId) {
+    printf("Signalling %d\n", processId);
+    fflush(stdout);
+    kill(processId, SIGINT);
+}
+
+void setSignalHandler(int sig, void* fun) {
+    struct sigaction sa;
+    sa.sa_flags = SA_SIGINFO;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_sigaction = fun;
+    sigaction(sig, &sa, NULL);
 }
 
 // Output messages to console
@@ -32,15 +51,27 @@ void restoreConsole() {
     dup2(stderrCopy, STDERR_FILENO);
 }
 
-void signalHandler(int sig, siginfo_t* sigInfo, void* context) {
+void signalInterruptHandler(int sig, siginfo_t* sigInfo, void* context) {
+    printf("Stopped executing %s %s signal = %d\n", command, arg, sig);
+    fflush(stdout);
+    
     restoreConsole();
 
-    printf("Signalling %d\n", sig);
-    // TODO: signal to child
-    fflush(stdout);
+    endProcess(currentChild);
 }
 
-int main(int argc, char* argv[]) {
+void signalQuitHandler(int sig, siginfo_t* sigInfo, void* context) {
+    restoreConsole();
+
+    endProcess(currentChild);
+
+    printf("Exiting due to quit signal\n");
+    fflush(stdout);
+
+    exit(EXIT_FAILURE);
+}
+
+int main(int argc, char** argv) {
     if (argc <= 1) {
         printf("No command provided. Exiting...");
         exit(-1);
@@ -49,16 +80,17 @@ int main(int argc, char* argv[]) {
     stdoutCopy = dup(STDOUT_FILENO);
     stderrCopy = dup(STDERR_FILENO);
 
-    struct sigaction sa;
-    sa.sa_flags = SA_SIGINFO;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_sigaction = signalHandler;
-    sigaction(SIGINT, &sa, NULL);
+    currentChild = -1;
 
-    char* command = argv[1];
+    setSignalHandler(SIGINT, signalInterruptHandler);
+    setSignalHandler(SIGQUIT, signalQuitHandler);
+
+    command = argv[1];
     int fileNumber = 1;
 
     for (int i = 2; i < argc; i++) {
+        arg = argv[i];
+
         int filenameLength = (log(fileNumber) / log(10) + 1) + strlen(fileExtension);
         char filename[filenameLength];
 
@@ -73,34 +105,37 @@ int main(int argc, char* argv[]) {
 
         fileNumber++;
 
+        printf("Executing %s %s\n", command, arg);
+        fflush(stdout);
 
-        switch (fork()) {
-            case 0:
-                sa.sa_sigaction = SIG_IGN;
-                sigaction(SIGINT, &sa, NULL);
+        currentChild = fork();
+        if (currentChild == 0) {
+            execlp(command, command, arg, NULL);
 
-                printf("Executing %s %s\n", command, argv[i]);
-                fflush(stdout);
-                execlp(command, command, argv[i], NULL);
+            printf("Error executing \"%s %s\". Exiting...\n", command, arg);
+            fflush(stdout);
+            error(errno, "exec");
 
-                printf("Error executing \"%s %s\". Exiting...\n", command, argv[i]);
-                fflush(stdout);
-                error(errno, "exec");
-                break;
-            case -1:
-                printf("Error forking on input \"%s %s\". Exiting...\n", command, argv[i]);
-                fflush(stdout);
-                error(errno, "main fork");
-                break;
+            return EXIT_FAILURE;
+         } else if (currentChild < 0) {
+            printf("Error forking on input \"%s %s\". Exiting...\n", command, arg);
+            fflush(stdout);
+            error(errno, "main fork");
+
+            return EXIT_FAILURE;
         }
 
-        int exitCode;
+        int exitCode = 0;
         pid_t pid;
         do {
             pid = wait(&exitCode);
         } while (errno == EINTR);
-
-        printf("Finished executing %s %s exit code = %d\n", command, argv[i], exitCode);
-        fflush(stdout);
+        
+        if (pid >= 0) {
+            printf("Finished executing %s %s exit code = %d\n", command, arg, exitCode);
+            fflush(stdout);
+        }
     }
+
+    return 0;
 }
