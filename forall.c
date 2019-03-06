@@ -20,6 +20,7 @@ int stdoutCopy;
 int stderrCopy;
 
 pid_t currentChild;
+int childRunning;
 int lastChildTerm;
 
 char* command;
@@ -55,6 +56,8 @@ void restoreConsole() {
 }
 
 void signalInterruptHandler(int sig, siginfo_t* sigInfo, void* context) {
+    if (!childRunning) return;
+    
     printf("Stopped executing %s %s signal = %d\n", command, arg, sig);
     fflush(stdout);
     
@@ -64,6 +67,8 @@ void signalInterruptHandler(int sig, siginfo_t* sigInfo, void* context) {
 }
 
 void signalQuitHandler(int sig, siginfo_t* sigInfo, void* context) {
+    if (!childRunning) return;
+    
     restoreConsole();
 
     endProcess(currentChild);
@@ -112,8 +117,9 @@ int main(int argc, char** argv) {
         printf("Executing %s %s\n", command, arg);
         fflush(stdout);
 
-        lastChildTerm = 0;
         currentChild = fork();
+        childRunning = 1;
+        lastChildTerm = 0;
         if (currentChild == 0) {
             execlp(command, command, arg, NULL);
 
@@ -131,9 +137,12 @@ int main(int argc, char** argv) {
         }
 
         int exitCode = 0;
+        pid_t pid;
         do {
-            wait(&exitCode);
-        } while (errno == EINTR);
+            pid = wait(&exitCode);
+        } while (pid == -1 && errno == EINTR);
+
+        childRunning = 0;
         
         if (!lastChildTerm) {
             printf("Finished executing %s %s exit code = %d\n", command, arg, exitCode);
