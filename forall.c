@@ -89,6 +89,7 @@ int main(int argc, char** argv) {
     stderrCopy = dup(STDERR_FILENO);
 
     currentChild = -1;
+    childRunning = 0;
     lastChildTerm = 0;
 
     setSignalHandler(SIGINT, signalInterruptHandler);
