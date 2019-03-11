@@ -81,7 +81,7 @@ void signalQuitHandler(int sig, siginfo_t* sigInfo, void* context) {
 
 int main(int argc, char** argv) {
     if (argc <= 1) {
-        printf("No command provided. Exiting...");
+        printf("No command provided. Exiting...\n");
         exit(-1);
     }
 
