@@ -174,7 +174,6 @@ moffset_t add(int fd, char str[]) {
     // Keeps track of current index in loop
     struct entry_s* entryIndex_p;
     while (offset < fhdr->free_start) {
-        printf("offset: %lld free start: %lld\n", offset, fhdr->free_start);
         entryIndex_p = (struct entry_s*) (ptr + offset);
         
         if (entryIndex_p->magic != ENTRY_MAGIC_DATA && entryIndex_p->magic != ENTRY_MAGIC_FREE) {
@@ -333,11 +332,9 @@ void delete(char str[]) {
 
     entryTarget_p->magic = ENTRY_MAGIC_FREE;
 
-    printf("%lld %lld\n", offset + sizeof(*entryTarget_p) + entryTarget_p->len, fhdr->free_start);
     // If deleting last entry
     if (offset + sizeof(*entryTarget_p) + entryTarget_p->len == fhdr->free_start) {
         fhdr->free_start = offset;
-        printf("Moving free_start%lld\n", offset);
     }
 
 }
