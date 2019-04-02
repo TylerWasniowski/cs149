@@ -174,6 +174,7 @@ moffset_t add(int fd, char str[]) {
     // Keeps track of current index in loop
     struct entry_s* entryIndex_p;
     while (offset < fhdr->free_start) {
+        printf("offset: %lld free start: %lld\n", offset, fhdr->free_start);
         entryIndex_p = (struct entry_s*) (ptr + offset);
         
         if (entryIndex_p->magic != ENTRY_MAGIC_DATA && entryIndex_p->magic != ENTRY_MAGIC_FREE) {
@@ -183,14 +184,22 @@ moffset_t add(int fd, char str[]) {
         }
 
         if (entryIndex_p->magic == ENTRY_MAGIC_FREE && entryToAdd_p->len <= entryIndex_p->len) {
+            int spaceLeft = entryIndex_p->len - entryToAdd_p->len;  
+            moffset_t freeLocationOffset = offset + sizeof(*entryToAdd_p) + entryToAdd_p->len;
             // Add new empty space to the right if it fits
             struct entry_s freeEntry = {
                 .magic = ENTRY_MAGIC_FREE,
-                .len = 1
+                .len = spaceLeft - sizeof(*entryIndex_p)
             };
-            int spaceLeft = entryIndex_p->len - entryToAdd_p->len;               
-            if (spaceLeft >= sizeof(freeEntry) + freeEntry.len)
-                memcpy(ptr + offset + sizeof(*entryToAdd_p) + entryToAdd_p->len, &freeEntry, sizeof(freeEntry) + freeEntry.len);                    
+            if (freeLocationOffset + spaceLeft >= fhdr->free_start) {
+                fhdr->free_start = freeLocationOffset;
+            } else if (spaceLeft >= sizeof(freeEntry) + 1) {
+                memcpy(ptr + freeLocationOffset, &freeEntry, sizeof(freeEntry));         
+            } else {
+                // Must add back space so we don't leave random floating data
+                entryToAdd_p->len += spaceLeft;
+            }
+
 
             setNext(entryToAdd_p, offset);
             memcpy(ptr + offset, entryToAdd_p, sizeof(entryToAdd) + entryToAdd_p->len);
@@ -324,9 +333,11 @@ void delete(char str[]) {
 
     entryTarget_p->magic = ENTRY_MAGIC_FREE;
 
+    printf("%lld %lld\n", offset + sizeof(*entryTarget_p) + entryTarget_p->len, fhdr->free_start);
     // If deleting last entry
     if (offset + sizeof(*entryTarget_p) + entryTarget_p->len == fhdr->free_start) {
         fhdr->free_start = offset;
+        printf("Moving free_start%lld\n", offset);
     }
 
 }
