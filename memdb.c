@@ -1,7 +1,6 @@
 /*
  * Using first-fit FSMP because it is easy.
  * Upon add to freed space, create new free space entry with leftover space
- * Upon delete to first entry, move right entry to first_
  * Upon delete to last entry, set free_start to the start of that entry
  * Upon delete, make sure any adjacent free spaces are merged
  * We ensure there will never be two or more contiguous free spaces.
@@ -315,7 +314,7 @@ void delete(char str[]) {
         }
     }
 
-    struct entry_s* entryRight_p = entryLeft_p + sizeof(*entryLeft_p) + entryLeft_p->len;
+    struct entry_s* entryRight_p = (struct entry_s*) (((char*) entryLeft_p) + sizeof(*entryLeft_p) + entryLeft_p->len);
     if (
         entryRight_p < (struct entry_s*) (ptr + fhdr->free_start)
         && entryRight_p->magic == ENTRY_MAGIC_FREE
@@ -324,14 +323,6 @@ void delete(char str[]) {
     }
 
     entryTarget_p->magic = ENTRY_MAGIC_FREE;
-
-    // If deleting first entry
-    if (offset == sizeof(*fhdr)) {
-        memcpy(ptr + sizeof(*fhdr), entryRight_p, sizeof(*entryRight_p) + entryRight_p->len);
-        if (ptr + fhdr->data_start == (char*) entryRight_p) {
-            fhdr->data_start = sizeof(*fhdr);
-        }
-    }
 
     // If deleting last entry
     if (offset + sizeof(*entryTarget_p) + entryTarget_p->len == fhdr->free_start) {
