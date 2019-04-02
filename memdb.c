@@ -146,7 +146,7 @@ moffset_t add(int fd, char str[]) {
     if (search(str)) {
         printf("Error: string already exists, not added.\n");
         printf("Note: wasn't sure if you actually wanted me to perror bc you said \"print an error\" but I figured you didn't mean that.\n");
-        return -1;
+        return 0;
     }
 
     // Entry to add to list
