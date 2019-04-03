@@ -333,8 +333,8 @@ void delete(char str[]) {
     entryTarget_p->magic = ENTRY_MAGIC_FREE;
 
     // If deleting last entry
-    if (offset + sizeof(*entryTarget_p) + entryTarget_p->len == fhdr->free_start) {
-        fhdr->free_start = offset;
+    if (((char*) entryLeft_p) + sizeof(*entryLeft_p) + entryLeft_p->len == ptr + fhdr->free_start) {
+        fhdr->free_start = ((char*) entryLeft_p) - ptr;
     }
 
 }
